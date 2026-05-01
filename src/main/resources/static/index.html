@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PedroPlex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav>
+    <div class="logo" onclick="goPage('home')">Pedro<span>Plex</span></div>
+    <button class="hamburger" onclick="toggleNav()" aria-label="Menú">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="mobileMenu">
+        <li><button onclick="goPage('home');document.getElementById('mobileMenu').classList.remove('open')"      id="nav-home"      class="active">Inicio</button></li>
+        <li><button onclick="goPage('series');document.getElementById('mobileMenu').classList.remove('open')"    id="nav-series">Series</button></li>
+        <li><button onclick="goPage('peliculas');document.getElementById('mobileMenu').classList.remove('open')" id="nav-peliculas">Películas</button></li>
+        <li><button onclick="goPage('watchlist');document.getElementById('mobileMenu').classList.remove('open')" id="nav-watchlist">Watchlist</button></li>
+    </ul>
+    <div class="nav-right">
+        <div class="search-wrap">
+            <span style="color:var(--muted);font-size:.85rem;">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar título..." oninput="handleSearch(this.value)" autocomplete="off">
+        </div>
+    </div>
+</nav>
+
+<!-- Barra de búsqueda móvil (solo visible en móvil) -->
+<div class="mobile-search-bar">
+    <div class="search-wrap">
+        <span style="color:var(--muted);font-size:.85rem;">🔍</span>
+        <input type="text" id="searchInputMobile" placeholder="Buscar título..." oninput="handleSearch(this.value)" autocomplete="off">
+    </div>
+</div>
+
+<div class="page" id="page-error">
+    <div class="error-screen">
+        <div class="error-icon">⚠️</div>
+        <h2 class="error-title">Problemas de conexión</h2>
+        <p class="error-msg">No se pudo conectar con el servidor.<br>Comprueba que el backend está activo e inténtalo de nuevo.</p>
+        <button class="error-btn" onclick="location.reload()">Reintentar</button>
+    </div>
+</div>
+
+<div class="page active" id="page-home">
+    <div class="home-header">
+        <h1>Mi Catálogo</h1>
+        <p id="home-sub">Cargando tu biblioteca...</p>
+    </div>
+
+    <div id="searchResultsSection" style="display:none;">
+        <div class="home-section" style="padding-bottom:3rem;">
+            <div class="home-section-title" id="searchResultsTitle">Resultados de búsqueda</div>
+            <div class="cards-grid" id="searchResultsGrid"></div>
+        </div>
+    </div>
+
+    <div id="homeNormalContent">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="divider"></div>
+        <div class="home-section">
+            <div class="home-section-title">Series favoritas ⭐</div>
+            <div class="cards-grid" id="favSeriesGrid"></div>
+        </div>
+        <div class="home-section" style="padding-bottom:3rem;">
+            <div class="home-section-title">Películas favoritas ⭐</div>
+            <div class="cards-grid" id="favPelisGrid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="page-series">
+    <div class="page-header">
+        <h1>Series</h1>
+        <p id="series-sub"></p>
+    </div>
+    <div class="page-content">
+        <div class="subsection">
+            <div class="subsection-header">
+                <div class="subsection-title"><span class="dot dot-gold"></span>En proceso</div>
+                <select onchange="changeSort('enproceso', this.value)">
+                    <option value="title">Título</option>
+                </select>
+                <span class="item-count" id="cnt-enproceso">0</span>
+            </div>
+            <div class="cards-grid" id="grid-enproceso"></div>
+            <div class="pagination"  id="pg-enproceso"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="subsection">
+            <div class="subsection-header">
+                <div class="subsection-title"><span class="dot dot-green"></span>Completadas</div>
+                <select onchange="changeSort('completada', this.value)">
+                    <option value="title">Título</option>
+                    <option value="rating-desc">Rating ↓</option>
+                    <option value="rating-asc">Rating ↑</option>
+                </select>
+                <span class="item-count" id="cnt-completada">0</span>
+            </div>
+            <div class="cards-grid" id="grid-completada"></div>
+            <div class="pagination"  id="pg-completada"></div>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="page-peliculas">
+    <div class="page-header">
+        <h1>Películas</h1>
+        <p id="peliculas-sub"></p>
+    </div>
+    <div class="page-content">
+        <div class="subsection">
+            <div class="subsection-header">
+                <div class="subsection-title"><span class="dot dot-red"></span>Todas las películas</div>
+                <select onchange="changeSort('pelicula', this.value)">
+                    <option value="title">Título</option>
+                    <option value="rating-desc">Rating ↓</option>
+                    <option value="rating-asc">Rating ↑</option>
+                </select>
+                <span class="item-count" id="cnt-pelicula">0</span>
+            </div>
+            <div class="cards-grid" id="grid-pelicula"></div>
+            <div class="pagination"  id="pg-pelicula"></div>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="page-watchlist">
+    <div class="page-header">
+        <h1>Watchlist</h1>
+        <p id="watchlist-sub"></p>
+    </div>
+    <div class="page-content">
+        <div class="subsection">
+            <div class="subsection-header">
+                <div class="subsection-title"><span class="dot dot-blue"></span>Series pendientes</div>
+                <select onchange="changeSort('wlseries', this.value)">
+                    <option value="title">Título</option>
+                </select>
+                <span class="item-count" id="cnt-wlseries">0</span>
+            </div>
+            <div class="cards-grid" id="grid-wlseries"></div>
+            <div class="pagination"  id="pg-wlseries"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="subsection">
+            <div class="subsection-header">
+                <div class="subsection-title"><span class="dot dot-blue"></span>Películas pendientes</div>
+                <select onchange="changeSort('wlpelis', this.value)">
+                    <option value="title">Título</option>
+                </select>
+                <span class="item-count" id="cnt-wlpelis">0</span>
+            </div>
+            <div class="cards-grid" id="grid-wlpelis"></div>
+            <div class="pagination"  id="pg-wlpelis"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-bg" id="modal" onclick="closeModal(event)">
+    <div class="modal" id="modalBox">
+        <div class="modal-cover">
+            <img id="mImg" src="" alt="" style="display:none">
+            <div class="modal-cover-grad"></div>
+            <button class="modal-x" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <h2 id="mTitle"></h2>
+            <div class="modal-meta" id="mMeta"></div>
+            <p id="mDesc"></p>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
