@@ -10,9 +10,17 @@ const E = {
 
 let ALL = [];
 const pgState = {};
+const dataCache = {
+    home: null,
+    series: null,
+    peliculas: null,
+    watchlist: null,
+    loading: {}
+};
 
 async function init() {
     try {
+        // Cargar SOLO datos de inicio
         const [completadas, enProceso, peliculas, watchlist] = await Promise.all([
             fetch(`${API_BASE}/series/completadas`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
             fetch(`${API_BASE}/series/enproceso`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
@@ -27,6 +35,12 @@ async function init() {
             ...watchlist.map(item => ({...item, estado: E.WATCHLIST}))
         ];
 
+        // Cachear todos los datos
+        dataCache.home = ALL;
+        dataCache.series = ALL.filter(i => i.tipo === 'serie');
+        dataCache.peliculas = ALL.filter(i => i.tipo === 'pelicula');
+        dataCache.watchlist = ALL.filter(i => i.estado === E.WATCHLIST);
+
         if (!ALL.length) {
             showError();
             return;
@@ -35,7 +49,8 @@ async function init() {
         showError();
         return;
     }
-    renderAll();
+    // Solo renderizar la página inicial
+    renderHome();
 }
 
 function showError() {
@@ -52,9 +67,9 @@ function renderAll() {
 }
 
 function renderHome() {
-    const series = ALL.filter(i => i.tipo === 'serie');
-    const pelis  = ALL.filter(i => i.tipo === 'pelicula');
-    const wl     = ALL.filter(i => i.estado === E.WATCHLIST);
+    const series = dataCache.series || ALL.filter(i => i.tipo === 'serie');
+    const pelis  = dataCache.peliculas || ALL.filter(i => i.tipo === 'pelicula');
+    const wl     = dataCache.watchlist || ALL.filter(i => i.estado === E.WATCHLIST);
 
     const seriesVistas = series.filter(i => i.estado !== E.WATCHLIST);
     const pelisVistas  = pelis.filter(i  => i.estado !== E.WATCHLIST);
@@ -93,22 +108,25 @@ function renderHome() {
 }
 
 function renderSeries() {
-    const ep  = ALL.filter(i => i.tipo==='serie' && i.estado===E.EN_PROCESO);
-    const com = ALL.filter(i => i.tipo==='serie' && i.estado===E.COMPLETADA);
+    const series = dataCache.series || ALL.filter(i => i.tipo === 'serie');
+    const ep  = series.filter(i => i.estado===E.EN_PROCESO);
+    const com = series.filter(i => i.estado===E.COMPLETADA);
     document.getElementById('series-sub').textContent = `${ep.length} en proceso · ${com.length} completadas`;
     setupGrid('enproceso', ep);
     setupGrid('completada', com);
 }
 
 function renderPeliculas() {
-    const p = ALL.filter(i => i.tipo==='pelicula' && i.estado!==E.WATCHLIST);
+    const pelis = dataCache.peliculas || ALL.filter(i => i.tipo === 'pelicula');
+    const p = pelis.filter(i => i.estado!==E.WATCHLIST);
     document.getElementById('peliculas-sub').textContent = `${p.length} películas en tu colección`;
     setupGrid('pelicula', p);
 }
 
 function renderWatchlist() {
-    const ws = ALL.filter(i => i.tipo==='serie'    && i.estado===E.WATCHLIST);
-    const wp = ALL.filter(i => i.tipo==='pelicula' && i.estado===E.WATCHLIST);
+    const watchlist = dataCache.watchlist || ALL.filter(i => i.estado === E.WATCHLIST);
+    const ws = watchlist.filter(i => i.tipo==='serie');
+    const wp = watchlist.filter(i => i.tipo==='pelicula');
     document.getElementById('watchlist-sub').textContent = `${ws.length + wp.length} títulos pendientes`;
     setupGrid('wlseries', ws);
     setupGrid('wlpelis',  wp);
@@ -255,7 +273,17 @@ function goPage(name) {
     currentPage = name;
     window.scrollTo({top:0,behavior:'smooth'});
     clearSearch();
-    renderAll();
+
+    // Renderizar solo la página solicitada
+    if (name === 'home') {
+        renderHome();
+    } else if (name === 'series') {
+        renderSeries();
+    } else if (name === 'peliculas') {
+        renderPeliculas();
+    } else if (name === 'watchlist') {
+        renderWatchlist();
+    }
 }
 
 function clearSearch() {
@@ -278,7 +306,6 @@ function handleSearch(q) {
     q = q.trim().toLowerCase();
 
     if (!q) {
-        renderAll();
         const searchSection = document.getElementById('searchResultsSection');
         const normalContent = document.getElementById('homeNormalContent');
         if (searchSection) searchSection.style.display = 'none';
@@ -301,12 +328,6 @@ function handleSearch(q) {
             ? f.map(i => cardHTML(i, ALL.indexOf(i))).join('')
             : '<div class="empty">Sin resultados para esa búsqueda</div>';
     }
-
-    setupGrid('enproceso', f.filter(i=>i.tipo==='serie'    && i.estado===E.EN_PROCESO));
-    setupGrid('completada',f.filter(i=>i.tipo==='serie'    && i.estado===E.COMPLETADA));
-    setupGrid('pelicula',  f.filter(i=>i.tipo==='pelicula' && i.estado!==E.WATCHLIST));
-    setupGrid('wlseries',  f.filter(i=>i.tipo==='serie'    && i.estado===E.WATCHLIST));
-    setupGrid('wlpelis',   f.filter(i=>i.tipo==='pelicula' && i.estado===E.WATCHLIST));
 }
 
 function getImg(item) {

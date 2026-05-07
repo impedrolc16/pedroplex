@@ -23,6 +23,9 @@ public class TraktService {
     @Value("${TRAKT_USERNAME}")
     private String username;
 
+    // Limita la concurrencia a 10 llamadas paralelas a TMDB
+    private static final int PARALLEL_LIMIT = 10;
+
     public TraktService(WebClient traktClient, TheMovieDBService tmdbService) {
         this.traktClient = traktClient;
         this.tmdbService = tmdbService;
@@ -78,7 +81,7 @@ public class TraktService {
                                 Map<String, Object> ids = (Map<String, Object>) show.get("ids");
                                 return ((Number) ids.get("tmdb")).intValue();
                             })
-                            .concatMap(r -> {
+                            .flatMap(r -> {
                                 Map<String, Object> show = (Map<String, Object>) r.get("show");
                                 Map<String, Object> ids = (Map<String, Object>) show.get("ids");
                                 Integer tmdbId = ((Number) ids.get("tmdb")).intValue();
@@ -96,7 +99,7 @@ public class TraktService {
                                             m.setTipo("serie");
                                             return m;
                                         });
-                            })
+                            }, PARALLEL_LIMIT)
                             .collectList();
                 });
     }
@@ -151,7 +154,7 @@ public class TraktService {
                                 Map<String, Object> ids = (Map<String, Object>) show.get("ids");
                                 return ((Number) ids.get("tmdb")).intValue();
                             })
-                            .concatMap(w -> {
+                            .flatMap(w -> {
                                 Map<String, Object> show = (Map<String, Object>) w.get("show");
                                 Map<String, Object> ids = (Map<String, Object>) show.get("ids");
                                 Integer tmdbId = ((Number) ids.get("tmdb")).intValue();
@@ -168,7 +171,7 @@ public class TraktService {
                                             m.setTipo("serie");
                                             return m;
                                         });
-                            })
+                            }, PARALLEL_LIMIT)
                             .collectList();
                 });
     }
@@ -189,7 +192,7 @@ public class TraktService {
                     Map<String, Object> ids = (Map<String, Object>) movie.get("ids");
                     return ((Number) ids.get("tmdb")).intValue();
                 })
-                .concatMap(map -> {
+                .flatMap(map -> {
                     Map<String, Object> movie = (Map<String, Object>) map.get("movie");
                     Map<String, Object> ids = (Map<String, Object>) movie.get("ids");
                     Integer tmdbId = ((Number) ids.get("tmdb")).intValue();
@@ -209,7 +212,7 @@ public class TraktService {
                                 m.setTipo("pelicula");
                                 return m;
                             });
-                })
+                }, PARALLEL_LIMIT)
                 .collectList();
     }
 
@@ -245,7 +248,7 @@ public class TraktService {
                         return ((Number) ids.get("tmdb")).intValue();
                     }
                 })
-                .concatMap(map -> {
+                .flatMap(map -> {
                     String type = (String) map.get("type");
                     Integer tmdbId;
                     String traktTipo;
@@ -279,7 +282,7 @@ public class TraktService {
                                 m.setTipo(finalTipo);
                                 return m;
                             });
-                })
+                }, PARALLEL_LIMIT)
                 .collectList();
     }
 }
